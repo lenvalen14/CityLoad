@@ -1,0 +1,11 @@
+torch
+torchvision
+segmentation-models-pytorch
+ultralytics
+opencv-python
+numpy
+requests
+Pillow
+shapely
+dotenv
+shapely
