@@ -7,22 +7,22 @@ import os
 import cv2
 import numpy as np
 from ai_engine import CityAiEngine
-from config import DEEPGLOBE_CLASSES, AI_INPUT_SIZE, ZOOM_LEVEL
+from config import LOVEDA_CLASSES, AI_INPUT_SIZE, ZOOM_LEVEL
 from utils import download_tile_image
 
 # Tạo folder results nếu chưa có
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-# Màu sắc cho từng loại đất (BGR format)
+# Màu sắc cho từng loại đất LoveDA (BGR format)
 LAND_COLORS = {
-    0: (0, 255, 255),    # urban_land - Vàng
-    1: (0, 255, 0),      # agriculture - Xanh lá
-    2: (0, 165, 255),    # rangeland - Cam
-    3: (0, 100, 0),      # forest - Xanh đậm
-    4: (255, 0, 0),      # water - Xanh dương
-    5: (128, 128, 128),  # barren - Xám
-    6: (255, 255, 255),  # unknown - Trắng
+    0: (128, 128, 128),  # background - Xám
+    1: (0, 0, 255),      # building - Đỏ
+    2: (0, 255, 255),    # road - Vàng
+    3: (255, 0, 0),      # water - Xanh dương
+    4: (139, 139, 0),    # barren - Xanh cyan đậm
+    5: (0, 100, 0),      # forest - Xanh lá đậm
+    6: (0, 255, 0),      # agriculture - Xanh lá
 }
 
 
@@ -59,11 +59,11 @@ def draw_detections(image, detections):
 
 
 def create_legend(height=300):
-    """Tạo legend cho các loại đất."""
+    """Tạo legend cho các loại đất LoveDA."""
     legend = np.ones((height, 200, 3), dtype=np.uint8) * 255
     
     y_offset = 30
-    for class_id, class_name in DEEPGLOBE_CLASSES.items():
+    for class_id, class_name in LOVEDA_CLASSES.items():
         color = LAND_COLORS[class_id]
         cv2.rectangle(legend, (10, y_offset - 15), (30, y_offset), color, -1)
         cv2.rectangle(legend, (10, y_offset - 15), (30, y_offset), (0, 0, 0), 1)
@@ -102,13 +102,13 @@ def test_image(image_path):
         print(f"Mask shape: {mask.shape}")
         print(f"Unique classes in mask: {np.unique(mask)}")
         
-        # Thống kê các loại đất
-        print("\nLand usage statistics:")
+        # Thống kê các loại đất LoveDA
+        print("\nLand usage statistics (LoveDA):")
         total_pixels = mask.size
         for class_id in np.unique(mask):
             count = np.sum(mask == class_id)
             percentage = (count / total_pixels) * 100
-            class_name = DEEPGLOBE_CLASSES.get(class_id, "unknown")
+            class_name = LOVEDA_CLASSES.get(class_id, "unknown")
             print(f"  {class_name}: {percentage:.1f}%")
         
         # Tạo ảnh màu từ mask

@@ -5,7 +5,7 @@ import time
 import logging
 import requests
 import numpy as np
-from config import BACKEND_URL, DEEPGLOBE_CLASSES, ZOOM_LEVEL
+from config import BACKEND_URL, LOVEDA_CLASSES, ZOOM_LEVEL
 from ai_engine import CityAiEngine
 from utils import download_tile_image, mask_to_geojson_polygons, pixel_to_latlon
 
@@ -91,9 +91,10 @@ def run_worker():
 
                 if mask_land is not None:
                     land_count = 0
-                    # Tách từng lớp đất (0-6)
-                    for class_id, class_name in DEEPGLOBE_CLASSES.items():
-                        if class_id == 6: continue
+                    # Tách từng lớp đất LoveDA (0-6)
+                    for class_id, class_name in LOVEDA_CLASSES.items():
+                        if class_id == 0:  # Skip background class
+                            continue
 
                         binary_mask = (mask_land == class_id).astype(np.uint8)
 

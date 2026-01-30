@@ -5,14 +5,13 @@ import segmentation_models_pytorch as smp
 from ultralytics import YOLO
 from config import MODEL_UNET_PATH, MODEL_YOLO_PATH, AI_INPUT_SIZE
 
-
 class CityAiEngine:
     def __init__(self):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"Device: {self.device}")
 
         self.unet = smp.UnetPlusPlus(
-            encoder_name="resnet50",
+            encoder_name="tu-hrnet_w48",
             in_channels=3,
             classes=7,
             activation=None
@@ -21,10 +20,19 @@ class CityAiEngine:
             checkpoint = torch.load(MODEL_UNET_PATH, map_location=self.device, weights_only=False)
             if isinstance(checkpoint, dict) and 'model' in checkpoint:
                 state_dict = checkpoint['model']
-                print(f"Loaded checkpoint from epoch {checkpoint.get('epoch', 'unknown')}, mIoU: {checkpoint.get('miou', 'unknown')}")
             else:
                 state_dict = checkpoint
-            self.unet.load_state_dict(state_dict)
+
+            new_state_dict = {}
+            for k, v in state_dict.items():
+                if k.startswith('module.'):
+                    k = k[7:]
+                if k.startswith('model.'):
+                    k = k[6:]
+                k = k.replace('encoder.model.', 'encoder.')
+                new_state_dict[k] = v
+
+            self.unet.load_state_dict(new_state_dict, strict=False)
             self.unet.to(self.device)
             self.unet.eval()
             print("U-Net Loaded.")
