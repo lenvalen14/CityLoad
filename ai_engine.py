@@ -11,28 +11,28 @@ class CityAiEngine:
         print(f"Device: {self.device}")
 
         self.unet = smp.UnetPlusPlus(
-            encoder_name="tu-hrnet_w48",
+            encoder_name="efficientnet-b4",
+            encoder_weights=None,
             in_channels=3,
-            classes=7,
+            classes=8,
             activation=None
         )
         try:
             checkpoint = torch.load(MODEL_UNET_PATH, map_location=self.device, weights_only=False)
-            if isinstance(checkpoint, dict) and 'model' in checkpoint:
-                state_dict = checkpoint['model']
+            
+            # Handle different checkpoint formats (giong test_segmentation.py)
+            if 'model_state_dict' in checkpoint:
+                state_dict = checkpoint['model_state_dict']
             else:
                 state_dict = checkpoint
 
+            # Handle DataParallel weights (module. prefix)
             new_state_dict = {}
             for k, v in state_dict.items():
-                if k.startswith('module.'):
-                    k = k[7:]
-                if k.startswith('model.'):
-                    k = k[6:]
-                k = k.replace('encoder.model.', 'encoder.')
-                new_state_dict[k] = v
+                name = k.replace('module.', '') if k.startswith('module.') else k
+                new_state_dict[name] = v
 
-            self.unet.load_state_dict(new_state_dict, strict=False)
+            self.unet.load_state_dict(new_state_dict)
             self.unet.to(self.device)
             self.unet.eval()
             print("U-Net Loaded.")
@@ -47,20 +47,23 @@ class CityAiEngine:
             print(f"Warning: YOLO load failed ({e}).")
             self.yolo = None
 
+    def preprocess_image(self, image_bgr):
+        img_resized = cv2.resize(image_bgr, AI_INPUT_SIZE)
+        img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+        img_rgb = img_rgb.astype(np.float32) / 255.0
+        mean = np.array([0.485, 0.456, 0.406])
+        std = np.array([0.229, 0.224, 0.225])
+        img_rgb = (img_rgb - mean) / std
+        img_tensor = torch.from_numpy(img_rgb).float().permute(2, 0, 1).unsqueeze(0)
+        return img_tensor
+
     def predict_land_usage(self, image_bgr):
         if self.unet is None:
             return None
-
-        img_resized = cv2.resize(image_bgr, AI_INPUT_SIZE)
-        img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-        img_tensor = torch.from_numpy(img_rgb / 255.0).float().permute(2, 0, 1).unsqueeze(0)
-        img_tensor = img_tensor.to(self.device)
-
+        img_tensor = self.preprocess_image(image_bgr).to(self.device)
         with torch.no_grad():
             logits = self.unet(img_tensor)
-            probs = torch.softmax(logits, dim=1)
-            mask_index = torch.argmax(probs, dim=1).squeeze().cpu().numpy().astype(np.uint8)
-
+            mask_index = torch.argmax(logits, dim=1).squeeze().cpu().numpy().astype(np.uint8)
         return mask_index
 
     def predict_objects(self, image_bgr):

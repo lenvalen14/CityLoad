@@ -1,8 +1,3 @@
-"""
-Test script để kiểm tra khả năng detect và segmentation trên một ảnh mẫu.
-Kết quả được lưu vào folder results/
-"""
-
 import os
 import cv2
 import numpy as np
@@ -14,20 +9,21 @@ from utils import download_tile_image
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-# Màu sắc cho từng loại đất LoveDA (BGR format)
+# Mau sac cho tung loai dat LoveDA (BGR format, dong bo voi test_segmentation.py)
 LAND_COLORS = {
-    0: (128, 128, 128),  # background - Xám
-    1: (0, 0, 255),      # building - Đỏ
-    2: (0, 255, 255),    # road - Vàng
-    3: (255, 0, 0),      # water - Xanh dương
-    4: (139, 139, 0),    # barren - Xanh cyan đậm
-    5: (0, 100, 0),      # forest - Xanh lá đậm
-    6: (0, 255, 0),      # agriculture - Xanh lá
+    0: (0, 0, 0),         # 0: No-data (black)
+    1: (255, 255, 255),   # 1: Background (white)
+    2: (0, 0, 255),       # 2: Building (red -> BGR)
+    3: (128, 128, 128),   # 3: Road (gray)
+    4: (255, 0, 0),       # 4: Water (blue -> BGR)
+    5: (19, 69, 139),     # 5: Barren (brown -> BGR)
+    6: (0, 128, 0),       # 6: Forest (green)
+    7: (0, 255, 255),     # 7: Agriculture (yellow -> BGR)
 }
 
 
 def colorize_mask(mask):
-    """Chuyển mask index (0-6) thành ảnh màu RGB."""
+    """Chuyển mask index (0-7) thành ảnh màu RGB."""
     h, w = mask.shape
     color_mask = np.zeros((h, w, 3), dtype=np.uint8)
     
